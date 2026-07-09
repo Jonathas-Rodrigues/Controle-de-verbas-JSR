@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Controle de Verba</title>
+<title>Controle de Verba JSR</title>
 <style>
   :root {
     --bg: #F4F5F7;
@@ -199,7 +199,7 @@
     <div class="header-left">
       <div class="header-logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg></div>
       <div>
-        <p class="header-title">Controle de Verba</p>
+        <p class="header-title">Controle de Verba JSR</p>
         <p class="header-sub">Marketing por representante</p>
       </div>
     </div>
@@ -434,7 +434,6 @@ function monthChartHtml(gastoPorMes, selIdx, containerId) {
 }
 
 function chipRowHtml(items) {
-  // items: [{label, active, action, value}]
   return '<div class="chip-row">' + items.map(function (it) {
     return '<button class="chip ' + (it.active ? "active" : "") + '" data-action="' + it.action + '" data-value="' + escapeHtml(it.value) + '">' + escapeHtml(it.label) + '</button>';
   }).join("") + '</div>';
@@ -453,7 +452,6 @@ function renderDashboard() {
   var ranking = state.reps.map(function (r) { return { id: r.id, name: r.name, gasto: map[r.id] || 0 }; })
     .sort(function (a, b) { return b.gasto - a.gasto; });
 
-  // gauge
   var pct = Math.max(0, pctUtilizado);
   var barWidth = Math.min(100, pct);
   var excedeu = pct > 100;
@@ -806,7 +804,6 @@ function render() {
   var tab = TABS.find(function (t) { return t.id === currentTab; });
   tab.render();
 
-  // seletor de mês genérico (dashboard / lançar / comparativo)
   document.querySelectorAll('[data-action="month-prev"]').forEach(function (btn) {
     btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, -1); render(); });
   });
