@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Controle de Verba</title>
+<style>
+  :root {
+    --bg: #F4F5F7;
+    --surface: #ffffff;
+    --ink: #14181F;
+    --muted: #8A93A2;
+    --border: #E2E4E9;
+    --accent: #1F6F5C;
+    --accent-dark: #195A4A;
+    --accent-light: #2E9C82;
+    --gold: #B98B2E;
+    --gold-bg: #FBF3E2;
+    --danger: #C4432B;
+    --track: #EEF0F3;
+    --accent-bg: #E7F1EE;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    padding-bottom: 84px;
+  }
+  button, input, select { font-family: inherit; }
+  input, select { font-size: 16px; }
+  a { color: inherit; }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header-inner {
+    max-width: 640px; margin: 0 auto;
+    padding: 14px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .header-title { font-size: 15.5px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.1; margin:0; }
+  .header-sub { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
+  .save-badge { font-size: 11px; color: var(--accent); display:flex; align-items:center; gap:4px; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 16px 14px 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .stack { display:flex; flex-direction:column; gap:16px; }
+  .stack-sm > * + * { margin-top: 8px; }
+  .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .col-span-2 { grid-column: span 2; }
+
+  .label-xs {
+    font-size: 11px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.03em; margin: 0;
+  }
+  .kpi-value { font-size: 21px; font-weight: 600; margin: 4px 0 0; line-height:1.15; }
+  .card-title {
+    display:flex; align-items:center; gap:8px;
+    font-size: 14px; font-weight: 600; margin: 0 0 12px;
+  }
+  .card-title svg { color: var(--accent); flex-shrink:0; }
+
+  input[type="text"], input[type="number"], input[type="date"], select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    outline: none;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent); color: white; border: none;
+    border-radius: 8px; padding: 13px; font-size: 14px; font-weight: 600;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    cursor: pointer; width: 100%;
+  }
+  .btn-primary:active { background: var(--accent-dark); }
+  .btn-icon {
+    background: var(--accent); color:white; border:none; border-radius:8px;
+    width:48px; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .btn-icon:active { background: var(--accent-dark); }
+  .btn-ghost {
+    background:none; border:none; color: var(--muted); cursor:pointer;
+    padding: 8px; display:flex; align-items:center; justify-content:center;
+  }
+  .btn-ghost:active { color: var(--danger); }
+  .btn-chevron {
+    background:none; border:none; color:#5B6472; cursor:pointer;
+    padding: 10px; border-radius: 8px; display:flex; align-items:center; justify-content:center;
+  }
+  .btn-chevron:active { background: var(--bg); }
+
+  .month-selector {
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding: 6px; margin-bottom: 12px;
+  }
+  .month-selector span { font-size: 14px; font-weight:600; }
+
+  .row-between { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .empty-state { font-size: 13px; color: var(--muted); text-align:center; padding: 24px 8px; margin:0; }
+
+  .list-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-top: 8px;
+  }
+  .list-item:first-child { margin-top: 0; }
+  .list-item .name { font-weight: 500; font-size: 14px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list-item .sub { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list-item .min0 { min-width: 0; }
+  .list-item .value { font-weight:600; font-size:14px; white-space:nowrap; }
+
+  .gauge-track { width:100%; height:10px; background: var(--track); border-radius:999px; overflow:hidden; }
+  .gauge-fill { height:100%; border-radius:999px; transition: width .4s; }
+  .gauge-msg { font-size:12px; margin-top:8px; display:flex; align-items:center; gap:5px; }
+
+  .chip {
+    flex-shrink:0; padding: 7px 14px; border-radius: 999px; font-size: 12.5px; font-weight:500;
+    border: 1px solid var(--border); background: var(--surface); color:#5B6472; cursor:pointer;
+    white-space: nowrap;
+  }
+  .chip.active { background: var(--accent); color:white; border-color: var(--accent); }
+  .chip-row { display:flex; gap:6px; overflow-x:auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .chip-row::-webkit-scrollbar { display:none; }
+
+  .rank-row + .rank-row { margin-top: 14px; }
+  .rank-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 5px; }
+  .rank-name { font-size: 13px; font-weight: 500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 70%; }
+  .rank-value { font-size: 12.5px; color: var(--muted); font-weight:600; }
+  .rank-track { width:100%; height:8px; background: var(--track); border-radius: 999px; overflow:hidden; }
+  .rank-fill { height:100%; border-radius:999px; }
+
+  .month-chart { display:flex; align-items:flex-end; height:130px; gap:4px; margin-top: 4px; }
+  .month-col {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    height:100%; cursor:pointer; min-width: 0;
+  }
+  .month-bar-wrap { flex:1; display:flex; align-items:flex-end; width:100%; justify-content:center; }
+  .month-bar { width: 65%; border-radius: 4px 4px 0 0; min-height: 2px; transition: height .3s, background .2s; background: #CFE0DA; }
+  .month-label { font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .month-hint { font-size:11px; color:var(--muted); text-align:center; margin: 10px 0 0; }
+
+  .champion-card { display:flex; align-items:center; gap:12px; }
+  .champion-icon {
+    width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .champion-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; font-weight:500; margin:0; }
+  .champion-name { font-size:14.5px; font-weight:600; margin:3px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .champion-name .amount { font-weight:400; color: var(--muted); }
+
+  .comp-field-label { font-size:10.5px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+  .comp-divider {
+    margin-top:10px; padding-top:10px; border-top:1px solid #F0F1F3;
+    font-size:12.5px; color:var(--muted); display:flex; justify-content:space-between;
+  }
+
+  .bottom-nav {
+    position: fixed; bottom:0; left:0; right:0;
+    background: var(--surface); border-top:1px solid var(--border); z-index: 20;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav-inner { max-width:640px; margin:0 auto; display:grid; grid-template-columns: repeat(5,1fr); }
+  .nav-btn {
+    background:none; border:none; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    padding: 10px 2px; min-height: 58px; color: var(--muted);
+  }
+  .nav-btn:active { background: var(--bg); }
+  .nav-btn.active { color: var(--accent); }
+  .nav-label { font-size:10px; font-weight:500; line-height:1; }
+
+  .filter-label { font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; padding: 0 4px; margin: 0 0 6px; }
+
+  .sticky-btn { position: sticky; bottom: 70px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="header-logo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg></div>
+      <div>
+        <p class="header-title">Controle de Verba</p>
+        <p class="header-sub">Marketing por representante</p>
+      </div>
+    </div>
+    <div class="save-badge" id="save-badge"></div>
+  </div>
+</div>
+
+<main id="app"></main>
+
+<div class="bottom-nav">
+  <div class="bottom-nav-inner" id="bottom-nav"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ===================== Utils ===================== */
+var STORAGE_KEY = "verba-marketing-html-v1";
+var MONTH_ABBR = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+function fmtBRL(v) {
+  v = Number(v) || 0;
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function fmtPct(v) {
+  return (Number(v) || 0).toFixed(1) + "%";
+}
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+function currentYM() {
+  return todayISO().slice(0, 7);
+}
+function currentYear() {
+  return todayISO().slice(0, 4);
+}
+function shiftMonth(ym, delta) {
+  var parts = ym.split("-").map(Number);
+  var y = parts[0], m = parts[1];
+  m += delta;
+  while (m < 1) { m += 12; y -= 1; }
+  while (m > 12) { m -= 12; y += 1; }
+  return y + "-" + String(m).padStart(2, "0");
+}
+function monthLabel(ym) {
+  var parts = ym.split("-").map(Number);
+  var d = new Date(parts[0], parts[1] - 1, 1);
+  var name = d.toLocaleDateString("pt-BR", { month: "long" });
+  var cap = name.charAt(0).toUpperCase() + name.slice(1);
+  return cap + "/" + parts[0];
+}
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ===================== Icons ===================== */
+function icon(name, size, color) {
+  size = size || 18;
+  color = color || "currentColor";
+  var paths = {
+    wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+    chevronLeft: '<polyline points="15 18 9 12 15 6"/>',
+    chevronRight: '<polyline points="9 18 15 12 9 6"/>',
+    alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+    receipt: '<path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/>',
+    scale: '<path d="M12 3v18"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/><path d="M5 7h14"/><path d="M8 21h8"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    trending: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    trophy: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M5 4H2v2a4 4 0 0 0 4 4"/><path d="M19 4h3v2a4 4 0 0 1-4 4"/>',
+    dashboard: '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>'
+  };
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (paths[name] || "") + '</svg>';
+}
+
+/* ===================== State ===================== */
+var emptyState = { verbaPorMes: {}, reps: [], expenses: [], comparativoPorMes: {} };
+var state = loadState();
+
+// tela / seleções atuais (não persistidas)
+var currentTab = "dashboard";
+var selectedMonth = currentYM();
+var anualState = { year: currentYear(), selMonthIdx: null, repFilter: null };
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(emptyState));
+    var parsed = JSON.parse(raw);
+    var migrated = JSON.parse(JSON.stringify(emptyState));
+    migrated.reps = parsed.reps || [];
+    migrated.expenses = parsed.expenses || [];
+    migrated.verbaPorMes = parsed.verbaPorMes || {};
+    migrated.comparativoPorMes = parsed.comparativoPorMes || {};
+    return migrated;
+  } catch (e) {
+    return JSON.parse(JSON.stringify(emptyState));
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    showSaved();
+  } catch (e) {
+    console.error("Falha ao salvar:", e);
+  }
+}
+
+var saveTimer = null;
+function showSaved() {
+  var badge = document.getElementById("save-badge");
+  if (!badge) return;
+  badge.innerHTML = icon("check", 12, "#1F6F5C") + " Salvo";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function () { badge.innerHTML = ""; }, 1500);
+}
+
+/* ===================== Data helpers ===================== */
+function addRep(name) {
+  name = (name || "").trim();
+  if (!name) return;
+  state.reps.push({ id: uid(), name: name });
+  saveState();
+  render();
+}
+function removeRep(id) {
+  state.reps = state.reps.filter(function (r) { return r.id !== id; });
+  state.expenses = state.expenses.filter(function (e) { return e.repId !== id; });
+  Object.keys(state.comparativoPorMes).forEach(function (ym) {
+    delete state.comparativoPorMes[ym][id];
+  });
+  saveState();
+  render();
+}
+function addExpense(repId, value, date, desc) {
+  if (!repId || !value || Number(value) <= 0) return;
+  state.expenses.unshift({
+    id: uid(), repId: repId, value: Number(value),
+    date: date || todayISO(), desc: desc || ""
+  });
+  saveState();
+  render();
+}
+function removeExpense(id) {
+  state.expenses = state.expenses.filter(function (e) { return e.id !== id; });
+  saveState();
+  render();
+}
+function updateComparativo(ym, repId, field, value) {
+  if (!state.comparativoPorMes[ym]) state.comparativoPorMes[ym] = {};
+  if (!state.comparativoPorMes[ym][repId]) state.comparativoPorMes[ym][repId] = {};
+  state.comparativoPorMes[ym][repId][field] = value;
+  saveState();
+  render();
+}
+function updateVerbaMes(ym, value) {
+  state.verbaPorMes[ym] = Number(value) || 0;
+  saveState();
+  render();
+}
+function gastoPorRepGeral() {
+  var map = {};
+  state.reps.forEach(function (r) { map[r.id] = 0; });
+  state.expenses.forEach(function (e) { map[e.repId] = (map[e.repId] || 0) + Number(e.value); });
+  return map;
+}
+function repName(id) {
+  var r = state.reps.find(function (r) { return r.id === id; });
+  return r ? r.name : "—";
+}
+
+/* ===================== Shared UI bits ===================== */
+function kpiCard(label, value, accent, wide) {
+  return '<div class="card ' + (wide ? "col-span-2" : "") + '">' +
+    '<p class="label-xs">' + escapeHtml(label) + '</p>' +
+    '<p class="kpi-value" style="color:' + (accent || "#14181F") + '">' + value + '</p>' +
+    '</div>';
+}
+
+function monthSelectorHtml(ym, targetVar) {
+  return '<div class="month-selector">' +
+    '<button class="btn-chevron" data-action="month-prev" data-target="' + targetVar + '">' + icon("chevronLeft", 18) + '</button>' +
+    '<span>' + monthLabel(ym) + '</span>' +
+    '<button class="btn-chevron" data-action="month-next" data-target="' + targetVar + '">' + icon("chevronRight", 18) + '</button>' +
+    '</div>';
+}
+
+function emptyStateHtml(text) {
+  return '<p class="empty-state">' + escapeHtml(text) + '</p>';
+}
+
+function rankingChartHtml(data) {
+  var chartData = data.filter(function (r) { return r.gasto > 0; }).slice(0, 12);
+  if (chartData.length === 0) return emptyStateHtml("Nenhum gasto lançado neste período.");
+  var max = chartData[0].gasto;
+  return chartData.map(function (r) {
+    var intensity = max > 0 ? r.gasto / max : 0;
+    var color = intensity > 0.66 ? "var(--danger)" : intensity > 0.33 ? "var(--gold)" : "var(--accent)";
+    var width = max > 0 ? Math.max(4, (r.gasto / max) * 100) : 0;
+    return '<div class="rank-row">' +
+      '<div class="rank-head"><span class="rank-name">' + escapeHtml(r.name) + '</span><span class="rank-value">' + fmtBRL(r.gasto) + '</span></div>' +
+      '<div class="rank-track"><div class="rank-fill" style="width:' + width + '%;background:' + color + '"></div></div>' +
+      '</div>';
+  }).join("");
+}
+
+function monthChartHtml(gastoPorMes, selIdx, containerId) {
+  var max = Math.max(1, Math.max.apply(null, gastoPorMes.map(function (m) { return m.gasto; })));
+  var cols = gastoPorMes.map(function (m, i) {
+    var isSel = selIdx === i;
+    var isMax = m.gasto === max && m.gasto > 0;
+    var color = isSel ? "#1F6F5C" : isMax ? "#2E9C82" : "#CFE0DA";
+    var h = m.gasto > 0 ? Math.max(4, (m.gasto / max) * 100) : 2;
+    return '<div class="month-col" data-action="month-chart-click" data-index="' + i + '" data-container="' + containerId + '" title="' + escapeHtml(m.label) + ": " + fmtBRL(m.gasto) + '">' +
+      '<div class="month-bar-wrap"><div class="month-bar" style="height:' + h + '%;background:' + color + '"></div></div>' +
+      '<span class="month-label">' + m.label + '</span>' +
+      '</div>';
+  }).join("");
+  return '<div class="month-chart">' + cols + '</div>';
+}
+
+function chipRowHtml(items) {
+  // items: [{label, active, action, value}]
+  return '<div class="chip-row">' + items.map(function (it) {
+    return '<button class="chip ' + (it.active ? "active" : "") + '" data-action="' + it.action + '" data-value="' + escapeHtml(it.value) + '">' + escapeHtml(it.label) + '</button>';
+  }).join("") + '</div>';
+}
+
+/* ===================== Tab: Dashboard ===================== */
+function renderDashboard() {
+  var verbaTotal = state.verbaPorMes[selectedMonth] || 0;
+  var monthExpenses = state.expenses.filter(function (e) { return e.date.slice(0, 7) === selectedMonth; });
+  var totalGasto = monthExpenses.reduce(function (a, e) { return a + Number(e.value); }, 0);
+  var saldoRestante = verbaTotal - totalGasto;
+  var pctUtilizado = verbaTotal > 0 ? (totalGasto / verbaTotal) * 100 : 0;
+
+  var map = {};
+  monthExpenses.forEach(function (e) { map[e.repId] = (map[e.repId] || 0) + Number(e.value); });
+  var ranking = state.reps.map(function (r) { return { id: r.id, name: r.name, gasto: map[r.id] || 0 }; })
+    .sort(function (a, b) { return b.gasto - a.gasto; });
+
+  // gauge
+  var pct = Math.max(0, pctUtilizado);
+  var barWidth = Math.min(100, pct);
+  var excedeu = pct > 100;
+  var valorExcedente = totalGasto - verbaTotal;
+  var gaugeColor = pct >= 100 ? "var(--danger)" : pct >= 60 ? "var(--gold)" : "var(--accent)";
+  var mensagem = "";
+  if (excedeu) mensagem = "Verba excedida em " + fmtBRL(valorExcedente) + " (" + fmtPct(pct) + " do orçamento)";
+  else if (pct >= 90) mensagem = "Verba quase no limite";
+  else if (pct >= 60) mensagem = "Atenção: já foram usados " + fmtPct(pct) + " da verba";
+
+  var html = monthSelectorHtml(selectedMonth, "selectedMonth");
+
+  html += '<div class="grid-2" style="margin-bottom:16px">';
+  html += '<div class="card col-span-2">' +
+    '<p class="label-xs">Verba do mês</p>' +
+    '<button id="verba-display-btn" data-action="edit-verba" style="background:none;border:none;padding:0;cursor:pointer;text-align:left;display:block;width:100%;font-size:24px;font-weight:600;margin-top:4px;color:#14181F;">' + fmtBRL(verbaTotal) + '</button>' +
+    '<input id="verba-input" type="number" inputmode="decimal" value="' + verbaTotal + '" style="display:none;width:100%;font-size:22px;font-weight:600;margin-top:4px;border:none;border-bottom:1px solid var(--accent);outline:none;background:transparent;padding:0;" />' +
+    '</div>';
+  html += kpiCard("Gasto no mês", fmtBRL(totalGasto), "#B98B2E");
+  html += kpiCard("Saldo restante", fmtBRL(saldoRestante), saldoRestante < 0 ? "#C4432B" : "#1F6F5C");
+  html += '<div class="card col-span-2">' +
+    '<div class="row-between" style="margin-bottom:8px"><p class="label-xs">Verba utilizada</p><p style="font-size:13px;font-weight:600;margin:0;color:' + gaugeColor + '">' + fmtPct(pctUtilizado) + '</p></div>' +
+    '<div class="gauge-track"><div class="gauge-fill" style="width:' + barWidth + '%;background:' + gaugeColor + '"></div></div>' +
+    (mensagem ? '<p class="gauge-msg" style="color:' + gaugeColor + '">' + icon("alert", 12, gaugeColor) + ' ' + mensagem + '</p>' : '') +
+    '</div>';
+  html += '</div>';
+
+  html += '<div class="card">' +
+    '<p class="card-title">' + icon("trending", 16) + ' Quem gastou mais verba no mês</p>' +
+    rankingChartHtml(ranking) +
+    '</div>';
+
+  document.getElementById("app").innerHTML = html;
+
+  var displayBtn = document.getElementById("verba-display-btn");
+  var input = document.getElementById("verba-input");
+  document.querySelector('[data-action="edit-verba"]').addEventListener("click", function () {
+    displayBtn.style.display = "none";
+    input.style.display = "block";
+    input.focus();
+    input.select();
+  });
+  function commitVerba() {
+    updateVerbaMes(selectedMonth, input.value);
+  }
+  input.addEventListener("blur", commitVerba);
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") { input.blur(); } });
+}
+
+/* ===================== Tab: Representantes ===================== */
+function renderRepresentantes() {
+  var gastoPorRep = gastoPorRepGeral();
+  var html = '<div class="card">' +
+    '<p class="card-title">' + icon("userPlus", 16) + ' Adicionar representante</p>' +
+    '<div style="display:flex;gap:8px">' +
+    '<input id="rep-name-input" type="text" placeholder="Nome do representante" autocomplete="off" autocapitalize="words" enterkeyhint="done" style="flex:1;min-width:0" />' +
+    '<button class="btn-icon" id="rep-add-btn" aria-label="Adicionar representante">' + icon("plus", 20) + '</button>' +
+    '</div></div>';
+
+  html += '<div style="margin-top:16px">';
+  if (state.reps.length === 0) {
+    html += '<div class="card">' + emptyStateHtml("Nenhum representante cadastrado ainda.") + '</div>';
+  } else {
+    state.reps.forEach(function (r) {
+      html += '<div class="list-item">' +
+        '<div class="min0"><p class="name">' + escapeHtml(r.name) + '</p><p class="sub">' + fmtBRL(gastoPorRep[r.id] || 0) + ' gastos no total</p></div>' +
+        '<button class="btn-ghost" data-action="remove-rep" data-value="' + r.id + '" title="Remover">' + icon("trash", 17) + '</button>' +
+        '</div>';
+    });
+  }
+  html += '</div>';
+
+  document.getElementById("app").innerHTML = html;
+
+  var nameInput = document.getElementById("rep-name-input");
+  function submit() {
+    addRep(nameInput.value);
+  }
+  document.getElementById("rep-add-btn").addEventListener("click", submit);
+  nameInput.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+  document.querySelectorAll('[data-action="remove-rep"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { removeRep(btn.getAttribute("data-value")); });
+  });
+}
+
+/* ===================== Tab: Lançar Gasto ===================== */
+function renderLancar() {
+  var html = monthSelectorHtml(selectedMonth, "selectedMonth");
+
+  html += '<div class="card">' + '<p class="card-title">' + icon("receipt", 16) + ' Lançar aporte de verba</p>';
+  if (state.reps.length === 0) {
+    html += emptyStateHtml("Cadastre um representante antes de lançar gastos.");
+  } else {
+    var defaultDate = selectedMonth === currentYM() ? todayISO() : (selectedMonth + "-01");
+    html += '<div class="stack-sm">';
+    html += '<select id="lc-rep"><option value="">Representante</option>' +
+      state.reps.map(function (r) { return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join("") +
+      '</select>';
+    html += '<input id="lc-value" type="number" inputmode="decimal" placeholder="Valor (R$)" enterkeyhint="next" />';
+    html += '<input id="lc-date" type="date" value="' + defaultDate + '" />';
+    html += '<input id="lc-desc" type="text" placeholder="Descrição (opcional)" autocomplete="off" enterkeyhint="done" />';
+    html += '<button class="btn-primary sticky-btn" id="lc-submit">' + icon("plus", 17) + ' Lançar gasto</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  var monthExpenses = state.expenses.filter(function (e) { return e.date.slice(0, 7) === selectedMonth; })
+    .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+
+  html += '<p class="filter-label" style="margin-top:16px">Lançamentos de ' + monthLabel(selectedMonth) + '</p>';
+  if (monthExpenses.length === 0) {
+    html += '<div class="card">' + emptyStateHtml("Nenhum gasto lançado neste mês ainda.") + '</div>';
+  } else {
+    monthExpenses.forEach(function (e) {
+      var dateBr = e.date.split("-").reverse().join("/");
+      html += '<div class="list-item">' +
+        '<div class="min0"><p class="name">' + escapeHtml(repName(e.repId)) + '</p><p class="sub">' + dateBr + (e.desc ? " · " + escapeHtml(e.desc) : "") + '</p></div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
+        '<span class="value">' + fmtBRL(e.value) + '</span>' +
+        '<button class="btn-ghost" data-action="remove-expense" data-value="' + e.id + '" title="Remover">' + icon("trash", 16) + '</button>' +
+        '</div></div>';
+    });
+  }
+
+  document.getElementById("app").innerHTML = html;
+
+  if (state.reps.length > 0) {
+    var repSel = document.getElementById("lc-rep");
+    var valInput = document.getElementById("lc-value");
+    var dateInput = document.getElementById("lc-date");
+    var descInput = document.getElementById("lc-desc");
+    function submit() {
+      if (!repSel.value || !valInput.value) return;
+      addExpense(repSel.value, valInput.value, dateInput.value, descInput.value);
+    }
+    document.getElementById("lc-submit").addEventListener("click", submit);
+    valInput.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+    descInput.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+  }
+  document.querySelectorAll('[data-action="remove-expense"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { removeExpense(btn.getAttribute("data-value")); });
+  });
+}
+
+/* ===================== Tab: Comparativo ===================== */
+function renderComparativo() {
+  var html = monthSelectorHtml(selectedMonth, "selectedMonth");
+
+  if (state.reps.length === 0) {
+    html += '<div class="card">' + emptyStateHtml("Cadastre representantes para ver o comparativo.") + '</div>';
+    document.getElementById("app").innerHTML = html;
+    return;
+  }
+
+  var gastoPorRep = {};
+  state.expenses.filter(function (e) { return e.date.slice(0, 7) === selectedMonth; })
+    .forEach(function (e) { gastoPorRep[e.repId] = (gastoPorRep[e.repId] || 0) + Number(e.value); });
+
+  var rowsForMonth = state.comparativoPorMes[selectedMonth] || {};
+
+  html += '<div style="padding:0 4px 12px">' +
+    '<p class="card-title" style="margin-bottom:2px">' + icon("scale", 16) + ' Faturamento × Verba</p>' +
+    '<p style="font-size:12px;color:var(--muted);margin:2px 0 0">Preencha o faturamento (R$) do mês de cada representante. Meta: até 1% em verba.</p>' +
+    '</div>';
+
+  state.reps.forEach(function (r) {
+    var row = rowsForMonth[r.id] || {};
+    var gasto = gastoPorRep[r.id] || 0;
+    var faturamento = Number(row.faturamento) || 0;
+    var pct = faturamento > 0 ? (gasto / faturamento) * 100 : 0;
+    var pctColor = pct > 1 ? "#C4432B" : "#1F6F5C";
+    html += '<div class="card" style="margin-top:10px">' +
+      '<div class="row-between" style="margin-bottom:12px">' +
+      '<p style="font-weight:600;font-size:14.5px;margin:0">' + escapeHtml(r.name) + '</p>' +
+      '<span style="font-size:13.5px;font-weight:600;color:' + pctColor + '">' + (faturamento > 0 ? fmtPct(pct) + " da verba" : "—") + '</span>' +
+      '</div>' +
+      '<label class="comp-field-label">Faturamento (R$)</label>' +
+      '<input type="number" inputmode="decimal" placeholder="0" value="' + (row.faturamento != null ? row.faturamento : "") + '" data-action="comp-faturamento" data-rep="' + r.id + '" style="margin-top:4px" />' +
+      '<div class="comp-divider"><span>Verba gasta no mês</span><span style="font-weight:500;color:#14181F">' + fmtBRL(gasto) + '</span></div>' +
+      '</div>';
+  });
+
+  document.getElementById("app").innerHTML = html;
+
+  document.querySelectorAll('[data-action="comp-faturamento"]').forEach(function (inp) {
+    inp.addEventListener("change", function () {
+      updateComparativo(selectedMonth, inp.getAttribute("data-rep"), "faturamento", inp.value);
+    });
+  });
+}
+
+/* ===================== Tab: Anual ===================== */
+function renderAnual() {
+  var year = anualState.year;
+  var yearExpenses = state.expenses.filter(function (e) { return e.date.slice(0, 4) === year; });
+
+  var totalVerbaAno = Object.keys(state.verbaPorMes)
+    .filter(function (ym) { return ym.indexOf(year) === 0; })
+    .reduce(function (a, ym) { return a + Number(state.verbaPorMes[ym]); }, 0);
+
+  var totalGastoAnoEquipe = yearExpenses.reduce(function (a, e) { return a + Number(e.value); }, 0);
+
+  var repFilter = anualState.repFilter;
+  var yearExpensesEscopo = repFilter ? yearExpenses.filter(function (e) { return e.repId === repFilter; }) : yearExpenses;
+  var totalGastoAnoEscopo = yearExpensesEscopo.reduce(function (a, e) { return a + Number(e.value); }, 0);
+
+  var gastoPorMes = MONTH_ABBR.map(function (label, i) { return { label: label, gasto: 0 }; });
+  yearExpensesEscopo.forEach(function (e) {
+    var idx = Number(e.date.slice(5, 7)) - 1;
+    if (gastoPorMes[idx]) gastoPorMes[idx].gasto += Number(e.value);
+  });
+
+  var selMonthIdx = anualState.selMonthIdx;
+  var scopeExpenses = selMonthIdx === null ? yearExpensesEscopo :
+    yearExpensesEscopo.filter(function (e) { return Number(e.date.slice(5, 7)) - 1 === selMonthIdx; });
+  var scopeTotal = scopeExpenses.reduce(function (a, e) { return a + Number(e.value); }, 0);
+
+  var rankMap = {};
+  state.reps.forEach(function (r) { rankMap[r.id] = { id: r.id, name: r.name, gasto: 0 }; });
+  scopeExpenses.forEach(function (e) { if (rankMap[e.repId]) rankMap[e.repId].gasto += Number(e.value); });
+  var rankingScope = Object.keys(rankMap).map(function (k) { return rankMap[k]; }).sort(function (a, b) { return b.gasto - a.gasto; });
+  var campeao = rankingScope.find(function (r) { return r.gasto > 0; });
+
+  var scopeLabel = selMonthIdx === null ? year : (MONTH_ABBR[selMonthIdx] + "/" + year);
+  var selectedRep = repFilter ? state.reps.find(function (r) { return r.id === repFilter; }) : null;
+  var pctDoTime = totalGastoAnoEquipe > 0 ? (totalGastoAnoEscopo / totalGastoAnoEquipe) * 100 : 0;
+
+  var html = '<div class="month-selector">' +
+    '<button class="btn-chevron" data-action="year-prev">' + icon("chevronLeft", 18) + '</button>' +
+    '<span>' + year + '</span>' +
+    '<button class="btn-chevron" data-action="year-next">' + icon("chevronRight", 18) + '</button>' +
+    '</div>';
+
+  if (state.reps.length > 0) {
+    html += '<p class="filter-label">Filtrar por representante</p>';
+    var chipItems = [{ label: "Todos", active: repFilter === null, action: "rep-filter", value: "" }];
+    state.reps.forEach(function (r) {
+      chipItems.push({ label: r.name, active: repFilter === r.id, action: "rep-filter", value: r.id });
+    });
+    html += chipRowHtml(chipItems);
+    html += '<div style="margin-bottom:16px"></div>';
+  }
+
+  if (selectedRep) {
+    html += '<div class="grid-2" style="margin-bottom:16px">';
+    html += kpiCard("Gasto no ano · " + selectedRep.name, fmtBRL(totalGastoAnoEscopo), "#1F6F5C", true);
+    html += kpiCard("% do total da equipe", fmtPct(pctDoTime), "#B98B2E");
+    html += kpiCard("Verba total da equipe", fmtBRL(totalVerbaAno));
+    html += '</div>';
+  } else {
+    html += '<div class="grid-2" style="margin-bottom:16px">';
+    html += kpiCard("Verba do ano", fmtBRL(totalVerbaAno));
+    html += kpiCard("Gasto no ano", fmtBRL(totalGastoAnoEquipe), "#B98B2E");
+    html += '</div>';
+  }
+
+  if (selectedRep) {
+    html += '<div class="card champion-card" style="margin-bottom:16px">' +
+      '<div class="champion-icon" style="background:var(--accent-bg)">' + icon("users", 17, "#1F6F5C") + '</div>' +
+      '<div class="min0"><p class="champion-title">' + escapeHtml(selectedRep.name) + ' · ' + scopeLabel + '</p>' +
+      '<p class="champion-name">' + fmtBRL(scopeTotal) + '</p></div></div>';
+  } else if (campeao) {
+    html += '<div class="card champion-card" style="margin-bottom:16px">' +
+      '<div class="champion-icon" style="background:var(--gold-bg)">' + icon("trophy", 17, "#B98B2E") + '</div>' +
+      '<div class="min0"><p class="champion-title">Quem mais gastou verba · ' + scopeLabel + '</p>' +
+      '<p class="champion-name">' + escapeHtml(campeao.name) + ' <span class="amount">· ' + fmtBRL(campeao.gasto) + '</span></p></div></div>';
+  }
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<p class="card-title">' + icon("calendar", 16) + ' Gasto por mês' + (selectedRep ? " · " + escapeHtml(selectedRep.name) : "") + '</p>' +
+    monthChartHtml(gastoPorMes, selMonthIdx, "anual") +
+    '<p class="month-hint">Toque em um mês para ver o detalhe daquele mês</p>' +
+    '</div>';
+
+  if (!selectedRep) {
+    html += '<div class="card">' +
+      '<p class="card-title">' + icon("trending", 16) + ' Ranking · ' + scopeLabel + '</p>';
+    var monthChips = [{ label: "Ano todo", active: selMonthIdx === null, action: "anual-month-chip", value: "" }];
+    MONTH_ABBR.forEach(function (m, i) {
+      monthChips.push({ label: m, active: selMonthIdx === i, action: "anual-month-chip", value: String(i) });
+    });
+    html += chipRowHtml(monthChips);
+    html += '<div style="margin-top:14px">' + rankingChartHtml(rankingScope) + '</div>';
+    html += '</div>';
+  }
+
+  document.getElementById("app").innerHTML = html;
+
+  document.querySelector('[data-action="year-prev"]').addEventListener("click", function () {
+    anualState.year = String(Number(anualState.year) - 1);
+    anualState.selMonthIdx = null;
+    render();
+  });
+  document.querySelector('[data-action="year-next"]').addEventListener("click", function () {
+    anualState.year = String(Number(anualState.year) + 1);
+    anualState.selMonthIdx = null;
+    render();
+  });
+  document.querySelectorAll('[data-action="rep-filter"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-value");
+      anualState.repFilter = v || null;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="anual-month-chip"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-value");
+      anualState.selMonthIdx = v === "" ? null : Number(v);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="month-chart-click"]').forEach(function (col) {
+    col.addEventListener("click", function () {
+      anualState.selMonthIdx = Number(col.getAttribute("data-index"));
+      render();
+    });
+  });
+}
+
+/* ===================== Nav / Router ===================== */
+var TABS = [
+  { id: "dashboard", label: "Início", icon: "dashboard", render: renderDashboard },
+  { id: "representantes", label: "Equipe", icon: "users", render: renderRepresentantes },
+  { id: "lancar", label: "Lançar", icon: "receipt", render: renderLancar },
+  { id: "comparativo", label: "Comparar", icon: "scale", render: renderComparativo },
+  { id: "anual", label: "Anual", icon: "calendar", render: renderAnual }
+];
+
+function renderNav() {
+  var html = TABS.map(function (t) {
+    var active = currentTab === t.id;
+    var color = active ? "#1F6F5C" : "#8A93A2";
+    return '<button class="nav-btn ' + (active ? "active" : "") + '" data-tab="' + t.id + '">' +
+      icon(t.icon, 18, color) +
+      '<span class="nav-label" style="color:' + color + '">' + t.label + '</span>' +
+      '</button>';
+  }).join("");
+  document.getElementById("bottom-nav").innerHTML = html;
+  document.querySelectorAll(".nav-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      currentTab = btn.getAttribute("data-tab");
+      render();
+    });
+  });
+}
+
+function render() {
+  renderNav();
+  var tab = TABS.find(function (t) { return t.id === currentTab; });
+  tab.render();
+
+  // seletor de mês genérico (dashboard / lançar / comparativo)
+  document.querySelectorAll('[data-action="month-prev"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, -1); render(); });
+  });
+  document.querySelectorAll('[data-action="month-next"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, 1); render(); });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
