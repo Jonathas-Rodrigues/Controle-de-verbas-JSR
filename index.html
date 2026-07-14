@@ -281,7 +281,8 @@ function icon(name, size, color) {
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     trending: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
     trophy: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M5 4H2v2a4 4 0 0 0 4 4"/><path d="M19 4h3v2a4 4 0 0 1-4 4"/>',
-    dashboard: '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>'
+    dashboard: '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
   };
   return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (paths[name] || "") + '</svg>';
 }
@@ -434,6 +435,7 @@ function monthChartHtml(gastoPorMes, selIdx, containerId) {
 }
 
 function chipRowHtml(items) {
+  // items: [{label, active, action, value}]
   return '<div class="chip-row">' + items.map(function (it) {
     return '<button class="chip ' + (it.active ? "active" : "") + '" data-action="' + it.action + '" data-value="' + escapeHtml(it.value) + '">' + escapeHtml(it.label) + '</button>';
   }).join("") + '</div>';
@@ -452,6 +454,7 @@ function renderDashboard() {
   var ranking = state.reps.map(function (r) { return { id: r.id, name: r.name, gasto: map[r.id] || 0 }; })
     .sort(function (a, b) { return b.gasto - a.gasto; });
 
+  // gauge
   var pct = Math.max(0, pctUtilizado);
   var barWidth = Math.min(100, pct);
   var excedeu = pct > 100;
@@ -537,7 +540,58 @@ function renderRepresentantes() {
   });
 }
 
+function exportPDF(monthExpenses, scopeLabel, monthText, total) {
+  var rows = monthExpenses.map(function (e) {
+    return {
+      name: repName(e.repId),
+      dateBr: e.date.split("-").reverse().join("/"),
+      desc: e.desc || "—",
+      valueFmt: fmtBRL(e.value)
+    };
+  });
+  var geradoEm = new Date().toLocaleString("pt-BR");
+  var rowsHtml = rows.map(function (r) {
+    return "<tr><td>" + escapeHtml(r.name) + "</td><td>" + r.dateBr + "</td><td>" + escapeHtml(r.desc) + "</td><td class=\"v\">" + r.valueFmt + "</td></tr>";
+  }).join("");
+
+  var doc = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>Relatório · ' + escapeHtml(scopeLabel) + ' · ' + monthText + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;color:#14181F;padding:24px;margin:0}' +
+    'h1{font-size:18px;font-weight:700;margin:0}' +
+    '.sub{font-size:13px;color:#5B6472;margin:4px 0 0}' +
+    '.gen{font-size:10.5px;color:#8A93A2;margin:2px 0 16px}' +
+    'table{width:100%;border-collapse:collapse;font-size:12px}' +
+    'th{text-align:left;border-bottom:1.5px solid #14181F;padding:6px 8px;font-size:11px;text-transform:uppercase}' +
+    'th.v, td.v{text-align:right}' +
+    'td{padding:6px 8px;border-bottom:1px solid #E2E4E9}' +
+    'tfoot td{padding:8px;font-weight:700;border-top:1.5px solid #14181F;border-bottom:none}' +
+    '@media print { @page { margin: 14mm; } }' +
+    '</style></head><body>' +
+    '<h1>Controle de Verba JSR</h1>' +
+    '<p class="sub">Relatório de lançamentos · ' + escapeHtml(scopeLabel) + ' · ' + monthText + '</p>' +
+    '<p class="gen">Gerado em ' + geradoEm + '</p>' +
+    '<table><thead><tr><th>Representante</th><th>Data</th><th>Descrição</th><th class="v">Valor (R$)</th></tr></thead>' +
+    '<tbody>' + rowsHtml + '</tbody>' +
+    '<tfoot><tr><td colspan="3" style="text-align:right">TOTAL</td><td class="v">' + total + '</td></tr></tfoot>' +
+    '</table></body></html>';
+
+  var printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Seu navegador bloqueou a abertura da nova aba. Permita pop-ups para este site e tente novamente.");
+    return;
+  }
+  printWindow.document.write(doc);
+  printWindow.document.close();
+  printWindow.onload = function () {
+    printWindow.focus();
+    printWindow.print();
+  };
+}
+
 /* ===================== Tab: Lançar Gasto ===================== */
+var lancarRepFilter = null; // null = todos, ou repId (reset ao trocar de aba, não persiste)
+
 function renderLancar() {
   var html = monthSelectorHtml(selectedMonth, "selectedMonth");
 
@@ -558,12 +612,30 @@ function renderLancar() {
   }
   html += '</div>';
 
-  var monthExpenses = state.expenses.filter(function (e) { return e.date.slice(0, 7) === selectedMonth; })
+  var monthExpensesAll = state.expenses.filter(function (e) { return e.date.slice(0, 7) === selectedMonth; })
     .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  var monthExpenses = lancarRepFilter ? monthExpensesAll.filter(function (e) { return e.repId === lancarRepFilter; }) : monthExpensesAll;
+  var totalFiltrado = monthExpenses.reduce(function (a, e) { return a + Number(e.value); }, 0);
 
-  html += '<p class="filter-label" style="margin-top:16px">Lançamentos de ' + monthLabel(selectedMonth) + '</p>';
+  if (state.reps.length > 0) {
+    html += '<p class="filter-label" style="margin-top:16px">Ver detalhado por representante</p>';
+    var chipItems = [{ label: "Todos", active: lancarRepFilter === null, action: "lc-rep-filter", value: "" }];
+    state.reps.forEach(function (r) {
+      chipItems.push({ label: r.name, active: lancarRepFilter === r.id, action: "lc-rep-filter", value: r.id });
+    });
+    html += chipRowHtml(chipItems);
+  }
+
+  var listTitle = (lancarRepFilter ? "Lançamentos de " + escapeHtml(repName(lancarRepFilter)) : "Lançamentos") + " · " + monthLabel(selectedMonth);
+  html += '<div class="row-between" style="margin-top:16px;padding:0 4px;gap:8px">' +
+    '<p class="filter-label" style="margin:0">' + listTitle + '</p>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
+    (monthExpenses.length > 0 ? '<span style="font-size:12.5px;font-weight:600">' + fmtBRL(totalFiltrado) + '</span>' : '') +
+    (monthExpenses.length > 0 ? '<button id="export-csv-btn" style="display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:4px 10px;background:none;cursor:pointer;">' + icon("download", 12) + ' Exportar PDF</button>' : '') +
+    '</div></div>';
+
   if (monthExpenses.length === 0) {
-    html += '<div class="card">' + emptyStateHtml("Nenhum gasto lançado neste mês ainda.") + '</div>';
+    html += '<div class="card" style="margin-top:8px">' + emptyStateHtml(lancarRepFilter ? "Nenhum gasto deste representante neste mês." : "Nenhum gasto lançado neste mês ainda.") + '</div>';
   } else {
     monthExpenses.forEach(function (e) {
       var dateBr = e.date.split("-").reverse().join("/");
@@ -594,6 +666,20 @@ function renderLancar() {
   document.querySelectorAll('[data-action="remove-expense"]').forEach(function (btn) {
     btn.addEventListener("click", function () { removeExpense(btn.getAttribute("data-value")); });
   });
+  document.querySelectorAll('[data-action="lc-rep-filter"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-value");
+      lancarRepFilter = v || null;
+      render();
+    });
+  });
+  var exportBtn = document.getElementById("export-csv-btn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", function () {
+      var scopeLabel = lancarRepFilter ? repName(lancarRepFilter) : "Todos os representantes";
+      exportPDF(monthExpenses, scopeLabel, monthLabel(selectedMonth), fmtBRL(totalFiltrado));
+    });
+  }
 }
 
 /* ===================== Tab: Comparativo ===================== */
@@ -712,107 +798,4 @@ function renderAnual() {
     html += '<div class="card champion-card" style="margin-bottom:16px">' +
       '<div class="champion-icon" style="background:var(--accent-bg)">' + icon("users", 17, "#1F6F5C") + '</div>' +
       '<div class="min0"><p class="champion-title">' + escapeHtml(selectedRep.name) + ' · ' + scopeLabel + '</p>' +
-      '<p class="champion-name">' + fmtBRL(scopeTotal) + '</p></div></div>';
-  } else if (campeao) {
-    html += '<div class="card champion-card" style="margin-bottom:16px">' +
-      '<div class="champion-icon" style="background:var(--gold-bg)">' + icon("trophy", 17, "#B98B2E") + '</div>' +
-      '<div class="min0"><p class="champion-title">Quem mais gastou verba · ' + scopeLabel + '</p>' +
-      '<p class="champion-name">' + escapeHtml(campeao.name) + ' <span class="amount">· ' + fmtBRL(campeao.gasto) + '</span></p></div></div>';
-  }
-
-  html += '<div class="card" style="margin-bottom:16px">' +
-    '<p class="card-title">' + icon("calendar", 16) + ' Gasto por mês' + (selectedRep ? " · " + escapeHtml(selectedRep.name) : "") + '</p>' +
-    monthChartHtml(gastoPorMes, selMonthIdx, "anual") +
-    '<p class="month-hint">Toque em um mês para ver o detalhe daquele mês</p>' +
-    '</div>';
-
-  if (!selectedRep) {
-    html += '<div class="card">' +
-      '<p class="card-title">' + icon("trending", 16) + ' Ranking · ' + scopeLabel + '</p>';
-    var monthChips = [{ label: "Ano todo", active: selMonthIdx === null, action: "anual-month-chip", value: "" }];
-    MONTH_ABBR.forEach(function (m, i) {
-      monthChips.push({ label: m, active: selMonthIdx === i, action: "anual-month-chip", value: String(i) });
-    });
-    html += chipRowHtml(monthChips);
-    html += '<div style="margin-top:14px">' + rankingChartHtml(rankingScope) + '</div>';
-    html += '</div>';
-  }
-
-  document.getElementById("app").innerHTML = html;
-
-  document.querySelector('[data-action="year-prev"]').addEventListener("click", function () {
-    anualState.year = String(Number(anualState.year) - 1);
-    anualState.selMonthIdx = null;
-    render();
-  });
-  document.querySelector('[data-action="year-next"]').addEventListener("click", function () {
-    anualState.year = String(Number(anualState.year) + 1);
-    anualState.selMonthIdx = null;
-    render();
-  });
-  document.querySelectorAll('[data-action="rep-filter"]').forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var v = btn.getAttribute("data-value");
-      anualState.repFilter = v || null;
-      render();
-    });
-  });
-  document.querySelectorAll('[data-action="anual-month-chip"]').forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var v = btn.getAttribute("data-value");
-      anualState.selMonthIdx = v === "" ? null : Number(v);
-      render();
-    });
-  });
-  document.querySelectorAll('[data-action="month-chart-click"]').forEach(function (col) {
-    col.addEventListener("click", function () {
-      anualState.selMonthIdx = Number(col.getAttribute("data-index"));
-      render();
-    });
-  });
-}
-
-/* ===================== Nav / Router ===================== */
-var TABS = [
-  { id: "dashboard", label: "Início", icon: "dashboard", render: renderDashboard },
-  { id: "representantes", label: "Equipe", icon: "users", render: renderRepresentantes },
-  { id: "lancar", label: "Lançar", icon: "receipt", render: renderLancar },
-  { id: "comparativo", label: "Comparar", icon: "scale", render: renderComparativo },
-  { id: "anual", label: "Anual", icon: "calendar", render: renderAnual }
-];
-
-function renderNav() {
-  var html = TABS.map(function (t) {
-    var active = currentTab === t.id;
-    var color = active ? "#1F6F5C" : "#8A93A2";
-    return '<button class="nav-btn ' + (active ? "active" : "") + '" data-tab="' + t.id + '">' +
-      icon(t.icon, 18, color) +
-      '<span class="nav-label" style="color:' + color + '">' + t.label + '</span>' +
-      '</button>';
-  }).join("");
-  document.getElementById("bottom-nav").innerHTML = html;
-  document.querySelectorAll(".nav-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      currentTab = btn.getAttribute("data-tab");
-      render();
-    });
-  });
-}
-
-function render() {
-  renderNav();
-  var tab = TABS.find(function (t) { return t.id === currentTab; });
-  tab.render();
-
-  document.querySelectorAll('[data-action="month-prev"]').forEach(function (btn) {
-    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, -1); render(); });
-  });
-  document.querySelectorAll('[data-action="month-next"]').forEach(function (btn) {
-    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, 1); render(); });
-  });
-}
-
-render();
-</script>
-</body>
-</html>
+      '<p
