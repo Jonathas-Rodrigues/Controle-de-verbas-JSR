@@ -798,4 +798,108 @@ function renderAnual() {
     html += '<div class="card champion-card" style="margin-bottom:16px">' +
       '<div class="champion-icon" style="background:var(--accent-bg)">' + icon("users", 17, "#1F6F5C") + '</div>' +
       '<div class="min0"><p class="champion-title">' + escapeHtml(selectedRep.name) + ' · ' + scopeLabel + '</p>' +
-      '<p
+      '<p class="champion-name">' + fmtBRL(scopeTotal) + '</p></div></div>';
+  } else if (campeao) {
+    html += '<div class="card champion-card" style="margin-bottom:16px">' +
+      '<div class="champion-icon" style="background:var(--gold-bg)">' + icon("trophy", 17, "#B98B2E") + '</div>' +
+      '<div class="min0"><p class="champion-title">Quem mais gastou verba · ' + scopeLabel + '</p>' +
+      '<p class="champion-name">' + escapeHtml(campeao.name) + ' <span class="amount">· ' + fmtBRL(campeao.gasto) + '</span></p></div></div>';
+  }
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<p class="card-title">' + icon("calendar", 16) + ' Gasto por mês' + (selectedRep ? " · " + escapeHtml(selectedRep.name) : "") + '</p>' +
+    monthChartHtml(gastoPorMes, selMonthIdx, "anual") +
+    '<p class="month-hint">Toque em um mês para ver o detalhe daquele mês</p>' +
+    '</div>';
+
+  if (!selectedRep) {
+    html += '<div class="card">' +
+      '<p class="card-title">' + icon("trending", 16) + ' Ranking · ' + scopeLabel + '</p>';
+    var monthChips = [{ label: "Ano todo", active: selMonthIdx === null, action: "anual-month-chip", value: "" }];
+    MONTH_ABBR.forEach(function (m, i) {
+      monthChips.push({ label: m, active: selMonthIdx === i, action: "anual-month-chip", value: String(i) });
+    });
+    html += chipRowHtml(monthChips);
+    html += '<div style="margin-top:14px">' + rankingChartHtml(rankingScope) + '</div>';
+    html += '</div>';
+  }
+
+  document.getElementById("app").innerHTML = html;
+
+  document.querySelector('[data-action="year-prev"]').addEventListener("click", function () {
+    anualState.year = String(Number(anualState.year) - 1);
+    anualState.selMonthIdx = null;
+    render();
+  });
+  document.querySelector('[data-action="year-next"]').addEventListener("click", function () {
+    anualState.year = String(Number(anualState.year) + 1);
+    anualState.selMonthIdx = null;
+    render();
+  });
+  document.querySelectorAll('[data-action="rep-filter"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-value");
+      anualState.repFilter = v || null;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="anual-month-chip"]').forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-value");
+      anualState.selMonthIdx = v === "" ? null : Number(v);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="month-chart-click"]').forEach(function (col) {
+    col.addEventListener("click", function () {
+      anualState.selMonthIdx = Number(col.getAttribute("data-index"));
+      render();
+    });
+  });
+}
+
+/* ===================== Nav / Router ===================== */
+var TABS = [
+  { id: "dashboard", label: "Início", icon: "dashboard", render: renderDashboard },
+  { id: "representantes", label: "Equipe", icon: "users", render: renderRepresentantes },
+  { id: "lancar", label: "Lançar", icon: "receipt", render: renderLancar },
+  { id: "comparativo", label: "Comparar", icon: "scale", render: renderComparativo },
+  { id: "anual", label: "Anual", icon: "calendar", render: renderAnual }
+];
+
+function renderNav() {
+  var html = TABS.map(function (t) {
+    var active = currentTab === t.id;
+    var color = active ? "#1F6F5C" : "#8A93A2";
+    return '<button class="nav-btn ' + (active ? "active" : "") + '" data-tab="' + t.id + '">' +
+      icon(t.icon, 18, color) +
+      '<span class="nav-label" style="color:' + color + '">' + t.label + '</span>' +
+      '</button>';
+  }).join("");
+  document.getElementById("bottom-nav").innerHTML = html;
+  document.querySelectorAll(".nav-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      currentTab = btn.getAttribute("data-tab");
+      render();
+    });
+  });
+}
+
+function render() {
+  renderNav();
+  var tab = TABS.find(function (t) { return t.id === currentTab; });
+  tab.render();
+
+  // seletor de mês genérico (dashboard / lançar / comparativo)
+  document.querySelectorAll('[data-action="month-prev"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, -1); render(); });
+  });
+  document.querySelectorAll('[data-action="month-next"]').forEach(function (btn) {
+    btn.addEventListener("click", function () { selectedMonth = shiftMonth(selectedMonth, 1); render(); });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
